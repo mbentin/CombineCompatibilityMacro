@@ -34,6 +34,32 @@ final class CombineCompatibilityTests: XCTestCase {
         #endif
     }
 
+    func test_ProtocolCC_invariantFunc() {
+        #if canImport(CombineCompatibilityMacros)
+            assertMacroExpansion(
+                #"""
+                @ProtocolCombineCompatibility
+                protocol MyTest {
+                    func foo() -> String
+                    func foo() throws -> String
+                    func foo(bar: Int) -> String
+                }
+                """#,
+                expandedSource:
+                    #"""
+                    protocol MyTest {
+                        func foo() -> String
+                        func foo() throws -> String
+                        func foo(bar: Int) -> String
+                    }
+                    """#,
+                macros: testMacros
+            )
+        #else
+            throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+
     func test_ProtocolCC_multilines() throws {
         #if canImport(CombineCompatibilityMacros)
             assertMacroExpansion(

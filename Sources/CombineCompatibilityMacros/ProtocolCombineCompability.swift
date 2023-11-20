@@ -36,7 +36,9 @@ public struct ProtocolCombineCompatibility: MemberMacro {
 
         var declarations = [DeclSyntax]()
         for member in prot.memberBlock.members {
-            if let function = member.decl.as(FunctionDeclSyntax.self) {
+            if let function = member.decl.as(FunctionDeclSyntax.self),
+                function.isAsync
+            {
                 declarations.append(.init(stringLiteral: Self.funcSignature(function: function)))
             }
         }
@@ -59,7 +61,9 @@ extension ProtocolCombineCompatibility: ExtensionMacro {
         var funcString = "extension \(prot.name.trimmedDescription) {"
         var additions: Int = 0
         for member in prot.memberBlock.members {
-            guard let function = member.decl.as(FunctionDeclSyntax.self) else {
+            guard let function = member.decl.as(FunctionDeclSyntax.self),
+                function.isAsync
+            else {
                 continue
             }
 
@@ -98,5 +102,11 @@ extension ProtocolCombineCompatibility: ExtensionMacro {
             }
 
         return declarations
+    }
+}
+
+extension FunctionDeclSyntax {
+    var isAsync: Bool {
+        self.signature.effectSpecifiers?.asyncSpecifier != nil
     }
 }
