@@ -35,14 +35,7 @@ public struct ProtocolCombineCompatibility: MemberMacro {
         
         var declarations = [DeclSyntax]()
         for member in prot.memberBlock.members {
-            if let variable = member.decl.as(VariableDeclSyntax.self),
-               let bindings = variable.bindings.first,
-               let type = bindings.typeAnnotation?.description {
-                
-                declarations.append(.init(stringLiteral: """
-                    var \(bindings.pattern.description)Async\(type){ get }
-                """))
-            } else if let function = member.decl.as(FunctionDeclSyntax.self) {
+            if let function = member.decl.as(FunctionDeclSyntax.self) {
                 declarations.append(.init(stringLiteral: Self.funcSignature(function: function)))
             }
         }
@@ -63,10 +56,13 @@ extension ProtocolCombineCompatibility: ExtensionMacro {
         }
 
         var funcString = "extension \(prot.name.trimmedDescription) {"
+        var additions: Int = 0
         for member in prot.memberBlock.members {
             guard let function = member.decl.as(FunctionDeclSyntax.self) else {
                 continue
             }
+            
+            additions += 1
             var parameters = ""
             for (index, parameter) in function.signature.parameterClause.parameters.map(\.firstName).enumerated() {
                 if index > 0 {
@@ -93,8 +89,12 @@ extension ProtocolCombineCompatibility: ExtensionMacro {
             )
         }
         
-        let declaration: ExtensionDeclSyntax = try .init("\(raw: funcString)}")
+        let declarations: [ExtensionDeclSyntax] = if additions > 0 {
+            try [.init("\(raw: funcString)}")]
+        } else {
+            []
+        }
         
-        return [declaration]
+        return declarations
     }
 }
