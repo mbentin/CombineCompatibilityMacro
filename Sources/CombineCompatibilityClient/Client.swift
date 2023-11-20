@@ -4,9 +4,16 @@ import CombineCompatibility
 @ProtocolCombineCompatibility
 protocol MyP {
     func foobar() async throws -> String
+    func barfoo() async
 }
 
 struct My: MyP {
+    func barfoo() async {
+        await withCheckedContinuation { body in
+            body.resume(returning: "Bar foo")
+        }
+    }
+    
     func foobar() async throws -> String {
         await withCheckedContinuation { body in
             body.resume(returning: "Async call")

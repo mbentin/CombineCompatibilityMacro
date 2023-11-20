@@ -6,25 +6,6 @@ import SwiftSyntaxMacros
 
 public struct ProtocolCombineCompatibility: MemberMacro {
 
-    static private func funcSignature(function: FunctionDeclSyntax) -> String {
-        let identifier = function.name.text
-        let signature = function.signature
-        let parameters = signature.parameterClause.parameters
-            .map(\.trimmedDescription)
-            .joined()
-
-        let parametersString =
-            if signature.parameterClause.parameters.count == 0 {
-                "()"
-            } else {
-                "(\(parameters))"
-            }
-
-        let returnClauseType = signature.returnClause?.type.trimmedDescription ?? "Void"
-
-        return "func \(identifier)\(parametersString) -> Future<\(returnClauseType), Error>"
-    }
-
     public static func expansion(
         of node: SwiftSyntax.AttributeSyntax,
         providingMembersOf declaration: some SwiftSyntax.DeclGroupSyntax,
@@ -39,7 +20,7 @@ public struct ProtocolCombineCompatibility: MemberMacro {
             if let function = member.decl.as(FunctionDeclSyntax.self),
                 function.isAsync
             {
-                declarations.append(.init(stringLiteral: Self.funcSignature(function: function)))
+                declarations.append(.init(stringLiteral: FunctionBuilder(function: function).signature))
             }
         }
         return declarations
@@ -68,30 +49,7 @@ extension ProtocolCombineCompatibility: ExtensionMacro {
             }
 
             additions += 1
-            var parameters = ""
-            for (index, parameter) in function.signature.parameterClause.parameters.map(\.firstName).enumerated() {
-                if index > 0 {
-                    parameters.append(",")
-                }
-                parameters.append("\(parameter): \(parameter)")
-            }
-
-            funcString.append(
-                """
-                \(Self.funcSignature(function: function)) {
-                    Future { promise in
-                        Task {
-                            do {
-                                let output = try await self.\(function.name)(\(parameters))
-                                promise(.success(output))
-                            } catch {
-                                promise(.failure(error))
-                            }
-                        }
-                    }
-                }
-                """
-            )
+            funcString.append(FunctionBuilder(function: function).full)
         }
 
         let declarations: [ExtensionDeclSyntax] =
@@ -108,5 +66,8 @@ extension ProtocolCombineCompatibility: ExtensionMacro {
 extension FunctionDeclSyntax {
     var isAsync: Bool {
         self.signature.effectSpecifiers?.asyncSpecifier != nil
+    }
+    var isThrowing: Bool {
+        self.signature.effectSpecifiers?.throwsSpecifier != nil
     }
 }
