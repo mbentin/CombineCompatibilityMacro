@@ -7,7 +7,7 @@ import XCTest
     import CombineCompatibilityMacros
 
     let testMacros: [String: Macro.Type] = [
-        "ProtocolCombineCompatibility": ProtocolCombineCompatibility.self,
+        "ProtocolCombineCompatibility": ProtocolCombineCompatibility.self
     ]
 #endif
 
@@ -22,11 +22,11 @@ final class CombineCompatibilityTests: XCTestCase {
                 }
                 """#,
                 expandedSource:
-                #"""
-                protocol MyTest {
-                    var foo: String { get }
-                }
-                """#,
+                    #"""
+                    protocol MyTest {
+                        var foo: String { get }
+                    }
+                    """#,
                 macros: testMacros
             )
         #else
@@ -47,58 +47,58 @@ final class CombineCompatibilityTests: XCTestCase {
                 }
                 """#,
                 expandedSource: #"""
-                protocol MyTest {
-                    var foo: String { get }
-                    func bar() async throws -> String
-                    func foobar(param: Int) async throws -> (Int, String)
-                    func foobar(param: Int, param2: Double) async throws -> (Int, String)
+                    protocol MyTest {
+                        var foo: String { get }
+                        func bar() async throws -> String
+                        func foobar(param: Int) async throws -> (Int, String)
+                        func foobar(param: Int, param2: Double) async throws -> (Int, String)
 
-                    func bar() -> Future<String, Error>
+                        func bar() -> Future<String, Error>
 
-                    func foobar(param: Int) -> Future<(Int, String), Error>
+                        func foobar(param: Int) -> Future<(Int, String), Error>
 
-                    func foobar(param: Int, param2: Double) -> Future<(Int, String), Error>
-                }
+                        func foobar(param: Int, param2: Double) -> Future<(Int, String), Error>
+                    }
 
-                extension MyTest {
-                    func bar() -> Future<String, Error> {
-                        Future { promise in
-                            Task {
-                                do {
-                                    let output = try await self.bar()
-                                    promise(.success(output))
-                                } catch {
-                                    promise(.failure(error))
+                    extension MyTest {
+                        func bar() -> Future<String, Error> {
+                            Future { promise in
+                                Task {
+                                    do {
+                                        let output = try await self.bar()
+                                        promise(.success(output))
+                                    } catch {
+                                        promise(.failure(error))
+                                    }
+                                }
+                            }
+                        }
+                        func foobar(param: Int) -> Future<(Int, String), Error> {
+                            Future { promise in
+                                Task {
+                                    do {
+                                        let output = try await self.foobar(param: param)
+                                        promise(.success(output))
+                                    } catch {
+                                        promise(.failure(error))
+                                    }
+                                }
+                            }
+                        }
+                        func foobar(param: Int, param2: Double) -> Future<(Int, String), Error> {
+                            Future { promise in
+                                Task {
+                                    do {
+                                        let output = try await self.foobar(param: param, param2: param2)
+                                        promise(.success(output))
+                                    } catch {
+                                        promise(.failure(error))
+                                    }
                                 }
                             }
                         }
                     }
-                    func foobar(param: Int) -> Future<(Int, String), Error> {
-                        Future { promise in
-                            Task {
-                                do {
-                                    let output = try await self.foobar(param: param)
-                                    promise(.success(output))
-                                } catch {
-                                    promise(.failure(error))
-                                }
-                            }
-                        }
-                    }
-                    func foobar(param: Int, param2: Double) -> Future<(Int, String), Error> {
-                        Future { promise in
-                            Task {
-                                do {
-                                    let output = try await self.foobar(param: param, param2: param2)
-                                    promise(.success(output))
-                                } catch {
-                                    promise(.failure(error))
-                                }
-                            }
-                        }
-                    }
-                }
-                """#,
+                    """#,
                 macros: testMacros
             )
         #else

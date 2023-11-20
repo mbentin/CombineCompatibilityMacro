@@ -1,12 +1,12 @@
-import CombineCompatibility
 import Combine
+import CombineCompatibility
 
 @ProtocolCombineCompatibility
 protocol MyP {
     func foobar() async throws -> String
 }
 
-struct My : MyP {
+struct My: MyP {
     func foobar() async throws -> String {
         await withCheckedContinuation { body in
             body.resume(returning: "Async call")
