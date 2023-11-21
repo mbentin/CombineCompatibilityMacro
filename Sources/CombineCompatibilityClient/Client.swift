@@ -10,10 +10,11 @@ protocol MyP {
 struct My: MyP {
     func barfoo() async {
         await withCheckedContinuation { body in
-            body.resume(returning: "Bar foo")
+            print("BARFOO")
+            body.resume()
         }
     }
-    
+
     func foobar() async throws -> String {
         await withCheckedContinuation { body in
             body.resume(returning: "Async call")
@@ -26,6 +27,7 @@ struct Main {
     static func main() async throws {
         let my = My()
         print(try await my.foobar())
+        await my.barfoo()
         let _ = my.foobar()
             .sink(
                 receiveCompletion: { print("Combine: \($0)") },

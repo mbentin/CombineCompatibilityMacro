@@ -3,7 +3,7 @@ import SwiftSyntaxBuilder
 
 struct FunctionBuilder {
     let function: FunctionDeclSyntax
-    
+
     private var name: String { function.name.text }
     private var parameters: String {
         var parameters = ""
@@ -31,23 +31,69 @@ struct FunctionBuilder {
 
         let returnClauseType = signature.returnClause?.type.trimmedDescription ?? "Void"
 
-        return "func \(name)\(parametersString) -> Future<\(returnClauseType), Error>"
+        let errorClauseType = function.isThrowing ? "Error" : "Never"
+
+        return "func \(name)\(parametersString) -> Future<\(returnClauseType), \(errorClauseType)>"
     }
-    
-    var full: String {
+
+    private func outputLine(isThrowing: Bool) -> String {
+        "let output = \(isThrowing ? "try" : "") await self.\(name)(\(parameters))"
+    }
+
+    private var throwingBlock: String {
         """
-        \(signature) {
-            Future { promise in
-                Task {
-                    do {
+        do {
                         let output = try await self.\(name)(\(parameters))
                         promise(.success(output))
-                    } catch {
+        } catch {
                         promise(.failure(error))
+        }
+        """
+    }
+
+    private var throwingNonReturningBlock: String {
+        """
+        do {
+                        try await self.\(name)(\(parameters))
+                        promise(.success(()))
+        } catch {
+                        promise(.failure(error))
+        }
+        """
+    }
+
+    private var nonThrowingBlock: String {
+        """
+        let output = await self.\(name)(\(parameters))
+        promise(.success(output))
+        """
+    }
+
+    private var nonThrowingNonReturningBlock: String {
+        """
+        await self.\(name)(\(parameters))
+        promise(.success(()))
+        """
+    }
+
+    private func returnBblock(isReturning: Bool, isThrowing: Bool) -> String {
+        switch (isReturning, isThrowing) {
+        case (false, false): nonThrowingNonReturningBlock
+        case (false, true): throwingNonReturningBlock
+        case (true, false): nonThrowingBlock
+        case (true, true): throwingBlock
+        }
+    }
+
+    var full: String {
+        return """
+            \(signature) {
+                Future { promise in
+                    Task {
+                        \(returnBblock(isReturning: function.isReturning, isThrowing: function.isThrowing))
                     }
                 }
             }
-        }
-        """
+            """
     }
 }
